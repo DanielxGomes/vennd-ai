@@ -1,7 +1,7 @@
 import { sql } from '@vercel/postgres';
 import {
+
   InvoicesTable,
-  LatestInvoiceRaw,
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
@@ -23,7 +23,25 @@ export async function fetchRevenue(): Promise<Revenue[]> {
   }
 }
 
-export async function fetchLatestInvoices(): Promise<LatestInvoiceRaw[]> {
+// Supondo que LatestInvoiceRaw já esteja definido como:
+type LatestInvoiceRaw = {
+  amount: number;
+  name: string;
+  image_url: string;
+  email: string;
+  id: string;
+};
+
+// Defina a interface LatestInvoice
+type LatestInvoice = {
+  amount: string;  // Aqui o campo `amount` é string
+  name: string;
+  image_url: string;
+  email: string;
+  id: string;
+};
+
+export async function fetchLatestInvoices() {
   try {
     // Busca as 5 últimas faturas e junta com os dados dos clientes
     const data = await sql<LatestInvoiceRaw>`
@@ -33,14 +51,10 @@ export async function fetchLatestInvoices(): Promise<LatestInvoiceRaw[]> {
       ORDER BY invoices.date DESC
       LIMIT 5`;
 
-    if (!data || data.rows.length === 0) {
-      throw new Error('No invoices found.');
-    }
-
-    // Formata o valor das faturas antes de retornar
-    const latestInvoices = data.rows.map((invoice) => ({
+    // Converte o campo `amount` de `number` para `string` e formata
+    const latestInvoices: LatestInvoice[] = data.rows.map((invoice) => ({
       ...invoice,
-      amount: formatCurrency(invoice.amount),
+      amount: invoice.amount.toString(), // Converte para string
     }));
     return latestInvoices;
   } catch (error) {
@@ -48,6 +62,7 @@ export async function fetchLatestInvoices(): Promise<LatestInvoiceRaw[]> {
     throw new Error('Failed to fetch the latest invoices.');
   }
 }
+
 
 export async function fetchCardData(): Promise<{
   numberOfCustomers: number;
